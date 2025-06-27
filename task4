@@ -1,0 +1,89 @@
+> SELECT
+    ->     c.name                               AS category,
+    ->     COUNT(f.found_id)                    AS total_found,
+    ->     SUM(f.is_claimed)                    AS claimed_items            -- TRUE = 1, FALSE = 0
+    -> FROM       Found_Items AS f
+    -> INNER JOIN Categories   AS c  ON c.category_id = f.category_id
+    -> GROUP BY   c.category_id, c.name
+    -> HAVING     SUM(f.is_claimed) > 0;          
++---------------+-------------+---------------+
+| category      | total_found | claimed_items |
++---------------+-------------+---------------+
+| Clothing      |           1 |             1 |
+| Miscellaneous |           1 |             1 |
++---------------+-------------+---------------+
+
+mysql> SELECT
+    ->     status,
+    ->     COUNT(*) AS total_claims
+    -> FROM   Claims
+    -> GROUP BY status
+    -> HAVING COUNT(*) > 1;
++----------+--------------+
+| status   | total_claims |
++----------+--------------+
+| approved |            3 |
++----------+--------------+
+
+mysql> SELECT
+    ->     u.name,
+    ->     COUNT(c.claim_id)                                                      AS total_claims,
+    ->     SUM(CASE WHEN c.status = 'approved' THEN 1 ELSE 0 END)                 AS approved_claims
+    -> FROM       Users  AS u
+    -> INNER JOIN Claims AS c  ON c.user_id = u.user_id
+    -> GROUP BY   u.user_id, u.name
+    -> HAVING     SUM(CASE WHEN c.status = 'approved' THEN 1 ELSE 0 END) > 0;
++--------------+--------------+-----------------+
+| name         | total_claims | approved_claims |
++--------------+--------------+-----------------+
+| Maya S       |            1 |               1 |
+| Arjun George |            1 |               1 |
+| Divya Philip |            1 |               1 |
++--------------+--------------+-----------------+
+
+mysql> SELECT
+    ->     u.name,
+    ->     MAX(l.date_lost) AS last_date_lost
+    -> FROM   Users       AS u
+    -> JOIN   Lost_Items  AS l ON l.user_id = u.user_id
+    -> GROUP BY u.user_id, u.name
+    -> HAVING  MAX(l.date_lost) >= '2025-06-18';   
++--------------+----------------+
+| name         | last_date_lost |
++--------------+----------------+
+| Maya S       | 2025-06-20     |
+| Arjun George | 2025-06-18     |
+| Divya Philip | 2025-06-22     |
++--------------+----------------+
+
+mysql> SELECT
+    ->     c.name                 AS category,
+    ->     MIN(f.date_found)      AS first_found_date
+    -> FROM   Found_Items AS f
+    -> JOIN   Categories  AS c ON c.category_id = f.category_id
+    -> GROUP BY c.category_id, c.name
+    -> HAVING  MIN(f.date_found) < '2025-06-15';   -- only very early finds
++-------------+------------------+
+| category    | first_found_date |
++-------------+------------------+
+| Electronics | 2025-06-12       |
++-------------+------------------+
+
+
+
+mysql> SELECT
+    ->     u.name,
+    ->     AVG(DATEDIFF(c.claim_date, f.date_found)) AS avg_days_to_claim
+    -> FROM   Users       AS u
+    -> JOIN   Claims      AS c ON c.user_id  = u.user_id
+    -> JOIN   Found_Items AS f ON f.found_id = c.found_id
+    -> GROUP BY u.user_id, u.name
+    -> HAVING  AVG(DATEDIFF(c.claim_date, f.date_found)) < 2;   -- quick claimers only
++--------------+-------------------+
+| name         | avg_days_to_claim |
++--------------+-------------------+
+| Anjali Menon |            1.0000 |
+| Maya S       |            1.0000 |
+| Arjun George |            1.0000 |
+| Divya Philip |            1.0000 |
++--------------+-------------------+
